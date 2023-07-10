@@ -33,6 +33,7 @@ export class AuthService {
 		const oldUser = await this.userRepository.findOneBy({ username: dto.username })
 		if (oldUser) throw new BadRequestException('email зайнятий')
 
+
 		const salt = await genSalt(10);
 
 		const newUser = await this.userRepository.create({
@@ -43,7 +44,7 @@ export class AuthService {
 		const user = await this.userRepository.save(newUser)
 
 		return{
-			user: {id:user.id, username:user.username},
+			user: {id:user.id, username:user.username, telephoneNumber: user.telephoneNumber},
 			accessToken: await this.issueAccessToken(user.id)
 		}
 	}
