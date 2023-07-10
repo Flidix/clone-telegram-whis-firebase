@@ -164,29 +164,27 @@ export class ChatService {
   return {message: "deleted"}
   }
 
-async deleteUserInGroup(dto: DeleteUserInGroup) {
-  const user = await this.userRepository.findOneById(dto.userId);
-  const chat = await this.findGroupById(dto.chatId);
+  async deleteUserInGroup(dto: DeleteUserInGroup) {
+    const user = await this.userRepository.findOneById(dto.userId);
+    const chat = await this.findGroupById(dto.chatId);
 
-  const userIndex = chat.users.findIndex(i => i.id === dto.userId);
-  const chatIndex = user.groups.findIndex(i => i.id === dto.chatId);
+    const userIndex = chat.users.findIndex(i => i.id === dto.userId);
+    const chatIndex = user.groups.findIndex(i => i.id === dto.chatId);
 
-  if (0 === 0) {
-    chat.users.splice(userIndex, 1);
-    user.groups.splice(chatIndex, 1);
+    if (userIndex && chatIndex) {
+      chat.users.splice(userIndex, 1);
+      user.groups.splice(chatIndex, 1);
 
-    await Promise.all([
-      this.userRepository.save(user),
-      set(ref(this.database, `groups/${dto.chatId}`), chat)
-    ]);
+      await Promise.all([
+        this.userRepository.save(user),
+        set(ref(this.database, `groups/${dto.chatId}`), chat)
+      ]);
 
-    return true;
+      return true;
+    }
+
+    return false;
   }
-
-  return false;
-}
-
-
 
 }
 

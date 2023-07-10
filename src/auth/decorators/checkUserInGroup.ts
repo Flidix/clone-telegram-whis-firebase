@@ -23,7 +23,7 @@ async canActivate(context: ExecutionContext): Promise<boolean> {
         const user = this.jwtService.verify(token);
         req.user = user;
 
-        const groupId = req.body.groupId;
+        const groupId = req.body.groupId || req.body.chatId || req.params.id;
 				const groupRef = ref(this.database, `groups/${groupId}`);
 				const groupSnapshot = await get(groupRef);
         const groupData = groupSnapshot.val();
