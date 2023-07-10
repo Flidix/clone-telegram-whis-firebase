@@ -13,10 +13,13 @@ import { SendMessageDto } from './dto/sendMessage.dto';
 import { v4 as uuidv4 } from 'uuid';
 import { AddUserToGroupDto } from './dto/addUserToGroup.dto';
 import { FirebaseConfig } from '../config/firebase.config';
+import { DeleteUserInGroup } from './dto/deleteUserFronGroup.dto'
+import { CurrentUser } from '../auth/decorators/currentUser'
 
 @Injectable()
 export class ChatService {
   private database;
+
 
   constructor(
     @InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>,
@@ -41,6 +44,7 @@ export class ChatService {
       throw new HttpException("Group not found", HttpStatus.NOT_FOUND);
     }
   }
+
 
   /**
    * Create a new group
@@ -126,29 +130,63 @@ export class ChatService {
      * @returns true if the user was added successfully, otherwise throws a NotFoundException or BadRequestException
      */
 
-    async addUserToGroup(dto: AddUserToGroupDto){
-      const chat = await this.findGroupById(dto.groupId);
-      const user = await this.userRepository.findOne({ where: { id: dto.userId } });
+ async addUserToGroup(dto: AddUserToGroupDto, id: number) {
 
-      if (!chat || !user) {
-        throw new NotFoundException('Group or user not found');
-      }
 
-      // Check if the user is already added to the group
-      const isUserInGroup = chat.users.some(u => u.id === user.id);
-      if (isUserInGroup) {
-        throw new BadRequestException('User is already added to the group');
-      }
+  const chat = await this.findGroupById(dto.groupId);
+  const user = await this.userRepository.findOne({ where: { id: dto.userId } });
 
-      chat.users.push(user);
-      user.groups.push(dto.groupId);
+  if (!chat || !user) {
+    throw new NotFoundException('Group or user not found');
+  }
 
-      await this.userRepository.save(user);
+  const isUserInGroup = chat.users.some(u => u.id === user.id);
+  if (isUserInGroup) {
+    throw new BadRequestException('User is already added to the group');
+  }
 
-      // Update the group with the updated users in the database
-      const groupRef = ref(this.database, `groups/${dto.groupId}`);
-      await set(groupRef, chat);
+  chat.users.push(user);
+  user.groups.push(dto.groupId);
 
-      return true;
-    }
+  await this.userRepository.save(user);
+
+  const groupRef = ref(this.database, `groups/${dto.groupId}`);
+  await set(groupRef, chat);
+
+  return true;
 }
+
+  async deleteGroup(groupId: string) {
+  const groupRef = ref(this.database, `groups/${groupId}`);
+    if (groupRef) {
+      await remove(groupRef);
+    }
+  return {message: "deleted"}
+  }
+
+async deleteUserInGroup(dto: DeleteUserInGroup) {
+  const user = await this.userRepository.findOneById(dto.userId);
+  const chat = await this.findGroupById(dto.chatId);
+
+  const userIndex = chat.users.findIndex(i => i.id === dto.userId);
+  const chatIndex = user.groups.findIndex(i => i.id === dto.chatId);
+
+  if (0 === 0) {
+    chat.users.splice(userIndex, 1);
+    user.groups.splice(chatIndex, 1);
+
+    await Promise.all([
+      this.userRepository.save(user),
+      set(ref(this.database, `groups/${dto.chatId}`), chat)
+    ]);
+
+    return true;
+  }
+
+  return false;
+}
+
+
+
+}
+
