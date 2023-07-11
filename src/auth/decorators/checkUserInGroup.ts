@@ -1,41 +1,41 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from "@nestjs/common";
+import { CanActivate, ExecutionContext, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { Observable } from "rxjs";
 import { JwtService } from "@nestjs/jwt";
 import { initializeApp } from 'firebase/app'
 import { FirebaseConfig } from '../../config/firebase.config'
 import { get, getDatabase, ref } from 'firebase/database'
+import { InjectRepository } from '@nestjs/typeorm'
+import { UserEntity } from '../../user/entities/user.entity'
+import { Repository } from 'typeorm'
 
 @Injectable()
 export class CheckUserInGroup implements CanActivate {
-	private database;
 
-	constructor(private jwtService: JwtService) {
-		const app = initializeApp(FirebaseConfig);
-		this.database = getDatabase(app);
+	constructor(
+		@InjectRepository(UserEntity) private readonly userRepository: Repository<UserEntity>,
+		private jwtService: JwtService
+	) {
 	}
 
-async canActivate(context: ExecutionContext): Promise<boolean> {
-    const req = context.switchToHttp().getRequest();
-    try {
-        const authHeader = req.headers.authorization;
-        const [bearer, token] = authHeader.split(' ');
+	async canActivate(context: ExecutionContext): Promise<boolean> {
 
-        const user = this.jwtService.verify(token);
-        req.user = user;
+		const req = context.switchToHttp().getRequest();
+		try {
+			const authHeader = req.headers.authorization;
+			const [bearer, token] = authHeader.split(' ');
 
-        const groupId = req.body.groupId || req.body.chatId || req.params.id;
-				const groupRef = ref(this.database, `groups/${groupId}`);
-				const groupSnapshot = await get(groupRef);
-        const groupData = groupSnapshot.val();
+			const { id } = this.jwtService.verify(token);
+			const user = await this.userRepository.findOne({ where: { id } });
+			const groupId = req.body.groupId || req.body.chatId || req.params.id;
 
-			const userInGroup = groupData.users.some((groupUser: any) => groupUser.id === user.id);
+			const check = user.groups.find((group) => group.id === groupId)
 
-			if (userInGroup) {
+			if (check) {
 				return true;
 			}
-    } catch (e) {
-			console.log(e)
-        throw new UnauthorizedException("Unauthorized user");
-    }
-}
+
+		} catch (e) {
+			throw new NotFoundException("not found");
+		}
+	}
 }

@@ -28,22 +28,21 @@ export class ChatService {
     this.database = getDatabase(app);
   }
 
-  /**
-   * Find a group by its ID
-   * @param groupId - ID of the group
-   * @returns The group data if found, otherwise throws a NotFoundException
-   */
-  async findGroupById(groupId: string) {
-    const groupRef = ref(this.database, `groups/${groupId}`);
-    const groupSnapshot = await get(groupRef);
-    const groupData = groupSnapshot.val();
+/**
+ * Find a group by its ID
+ * @param groupId - ID of the group
+ * @returns The group data if found, otherwise throws a NotFoundException
+ */
+async findGroupById(groupId: string) {
+  const groupSnapshot = await get(ref(this.database, `groups/${groupId}`));
+  const groupData = groupSnapshot.val();
 
-    if (groupData) {
-      return groupData;
-    } else {
-      throw new HttpException("Group not found", HttpStatus.NOT_FOUND);
-    }
+  if (groupData) {
+    return groupData;
+  } else {
+    throw new HttpException("Group not found", HttpStatus.NOT_FOUND);
   }
+}
 
 
   /**
@@ -84,6 +83,7 @@ export class ChatService {
     });
     await this.userRepository.save(user);
 
+
     return groupData;
   }
 
@@ -94,6 +94,7 @@ export class ChatService {
    * @returns The sent message if successful, otherwise returns null
    */
   async sendMessage(dto: SendMessageDto, id: number) {
+
     const chat = await this.findGroupById(dto.chatId);
     const user = await this.userRepository.findOneById(id);
 
@@ -101,10 +102,7 @@ export class ChatService {
       throw new HttpException("User not found", HttpStatus.NOT_FOUND);
     }
 
-    // Check if user is a member of the group
-    if (user.groups === null || !user.groups.includes(dto.chatId)) {
-      throw new HttpException("User is not a member of the group", HttpStatus.NOT_FOUND);
-    }
+
 
     if (chat && Array.isArray(chat.messages)) {
       const newMessage = {
@@ -119,7 +117,6 @@ export class ChatService {
       // Update the group with the new message in the database
       const groupRef = ref(this.database, `groups/${dto.chatId}`);
       await set(groupRef, chat);
-
       return newMessage;
     }
   }
@@ -130,7 +127,7 @@ export class ChatService {
      * @returns true if the user was added successfully, otherwise throws a NotFoundException or BadRequestException
      */
 
- async addUserToGroup(dto: AddUserToGroupDto, id: number) {
+ async addUserToGroup(dto: AddUserToGroupDto) {
 
 
   const chat = await this.findGroupById(dto.groupId);

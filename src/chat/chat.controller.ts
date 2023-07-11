@@ -55,8 +55,8 @@ export class ChatController {
   })
   @UseGuards(CheckUserInGroup)
   @Post('addUser')
-  addUser(@CurrentUser("id") id: number, @Body() dto: AddUserToGroupDto){
-    return this.chatService.addUserToGroup(dto, id);
+  addUser(@Body() dto: AddUserToGroupDto){
+    return this.chatService.addUserToGroup(dto);
   }
 
   @ApiResponse({
