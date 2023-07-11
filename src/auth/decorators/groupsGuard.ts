@@ -12,17 +12,19 @@ export class RemoveGroupsInterceptor implements NestInterceptor {
 
 	private removeGroups(data: any): any {
 		if (Array.isArray(data)) {
+			// If the data is an array, remove 'groups' from each item
 			return data.map(item => this.removeGroups(item));
 		} else if (typeof data === 'object' && data !== null) {
-			const newData = Object.assign({}, data);
-			delete newData.groups;
-			for (const key in newData) {
-				newData[key] = this.removeGroups(newData[key]);
+			// If the data is an object, remove 'groups' property recursively
+			for (const key in data) {
+				if (key === 'groups') {
+					delete data[key];
+				} else if (typeof data[key] === 'object') {
+					data[key] = this.removeGroups(data[key]);
+				}
 			}
-			return newData;
 		}
 		return data;
 	}
-
 
 }
